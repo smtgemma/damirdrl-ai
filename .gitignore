@@ -1,0 +1,81 @@
+.env
+myvenv/
+__pycache__/
+*.pyc
+
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+*.manifest
+*.spec
+
+# Virtual environment
+venv/
+env/
+ENV/
+.venv/
+.env/
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+*.out
+
+# Cache
+.cache/
+.pytest_cache/
+.mypy_cache/
+__pypackages__/
+
+# Build & Distribution
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Environment variables
+.env.local
+.env.prod
+.env.dev
+.env.test
+
+# Database files
+*.db
+*.sqlite3
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# FastAPI specific
+# (if you use uvicorn reload feature, sometimes creates temporary files)
+*.pid
+
+# Coverage reports
+htmlcov/
+.coverage
+*.cover
+coverage.xml
+
+# Testing
+.tox/
+nose2-*.xml
+junit-*.xml
+
+# Docker
+*.pid
+*.seed
+*.pid.lock
+docker-compose.override.yml

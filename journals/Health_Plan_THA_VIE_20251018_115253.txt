@@ -1,0 +1,149 @@
+
+================================================================================
+                         TRAVEL HEALTH PLANNER JOURNAL
+                           Professional Health Report
+                        (With Web-Grounded Research)
+================================================================================
+
+📋 REPORT GENERATED: 18 Oct 2025 at 11:52:53
+
+TRAVELER INFORMATION:
+────────────────────────────────────────────────────────────────────────────────
+Name/ID: [Your Name]
+Age: 29 years old
+Report Date: 18 Oct 2025
+Number of Destinations: 2
+
+TRIP DETAILS:
+────────────────────────────────────────────────────────────────────────────────
+
+Destination 1: Thailand
+  • Duration: 14 days
+  • Departure: 11 Nov 2025
+  • Return: 25 Nov 2025
+  
+  Risk Profile:
+  ├─ Rural/Forest Areas: ✓ Yes
+  ├─ Close Contact with Locals: ✓ Yes
+  ├─ Staying with Local Family: ✓ Yes
+  ├─ Animal Contact: ✓ Yes
+  └─ Risky Activities (Tattoos/Surgery): ✗ No
+
+Destination 2: Vietnam
+  • Duration: 21 days
+  • Departure: 26 Nov 2025
+  • Return: 17 Dec 2025
+  
+  Risk Profile:
+  ├─ Rural/Forest Areas: ✓ Yes
+  ├─ Close Contact with Locals: ✓ Yes
+  ├─ Staying with Local Family: ✗ No
+  ├─ Animal Contact: ✗ No
+  └─ Risky Activities (Tattoos/Surgery): ✗ No
+
+
+TOTAL TRIP DURATION: 35 days
+
+================================================================================
+                     PERSONALIZED HEALTH RECOMMENDATIONS
+                    (Based on Latest Web-Grounded Research)
+================================================================================
+
+Okay, I will generate a travel health plan for your trip to Thailand and Vietnam, following the specified format and using the most current information from the CDC and SSI.
+
+---RESPONSE FORMAT (Use this exact structure)---
+
+💉 1. Recommended Vaccines & Malaria Prevention
+
+Vaccines (Based on CDC and SSI Guidelines)
+*   Hepatitis A (Both CDC & SSI)
+*   Typhoid (CDC)
+*   Tetanus-Diphtheria (Both CDC & SSI)
+*   Japanese Encephalitis (CDC & SSI)
+*   Hepatitis B (CDC & SSI)
+*   MMR (Measles, Mumps, Rubella) (CDC)
+
+Malaria Prophylaxis
+*   Thailand: Atovaquone/Proguanil (Malarone), Doxycycline, or Mefloquine (CDC). Not generally recommended by SSI, but mosquito bite prevention is advised.
+*   Vietnam: Atovaquone/Proguanil (Malarone), Doxycycline, or Mefloquine (CDC). Not generally recommended by SSI, but mosquito bite prevention is advised.
+
+🧾 2. Summary of Your Travel Info
+
+| Question | Your Answer |
+|----------|-------------|
+| Destinations | Thailand, Vietnam |
+| Total Trip Duration | 35 days |
+| Rural or forest areas | Yes |
+| Contact with locals | Yes |
+| Staying with locals | Yes |
+| Animal contact | Yes |
+| Risky activities | No |
+| Departure Date | 11 Nov 2025 |
+| Final Return Date | 17 Dec 2025 |
+| Age | 29 |
+
+🗓️ 3. Vaccination Plan (with Exact Dates)
+
+| Date | Vaccine | Dose | Notes |
+|------|---------|------|-------|
+| Oct 21, 2025 | Hepatitis A | 1st dose | Start protection 2 weeks before travel |
+| Oct 21, 2025 | Typhoid | Single dose | At least 2 weeks before travel |
+| Oct 21, 2025 | Hepatitis B | 1st dose | 3 doses needed over 6 months |
+| Oct 21, 2025 | MMR | Single dose | Ensure immunity |
+| Oct 24, 2025 | Japanese Encephalitis | 1st dose | 2 doses needed, 28 days apart (or accelerated 7 days apart) |
+| Oct 24, 2025 | Tetanus-Diphtheria | Booster | If not up-to-date |
+| Oct 28, 2025 | Japanese Encephalitis | 2nd dose | Complete series before departure (accelerated schedule) |
+| Nov 18, 2025 | Hepatitis B | 2nd dose | Second dose, one month after the first |
+| Apr 21, 2026 | Hepatitis B | 3rd dose | Third dose, six months after the first |
+
+⏱️ 4. How Quickly Protection Starts
+
+| Vaccine | Protection Begins | Duration |
+|---------|------------------|----------|
+| Hepatitis A | 2 weeks after 1st dose | 10+ years with booster |
+| Typhoid | 2 weeks after vaccination | 2-3 years |
+| Tetanus-Diphtheria | Immediate (if previously vaccinated) | 10 years |
+| Japanese Encephalitis | 1 week after 2nd dose | 1-2 years (booster needed) |
+| Hepatitis B | After 2nd dose, full after 3rd | Long-term |
+| MMR | Immediate | Lifetime |
+
+💊 5. Malaria Prevention Instructions
+
+Medication: Atovaquone/Proguanil (Malarone)
+Dosage: 1 tablet (250mg/100mg) daily
+Start: 1-2 days before entering malaria area
+Start Date: November 10, 2025
+Stop: 7 days after leaving malaria area
+End Date: December 24, 2025
+How to Take: Take with food or milk at the same time each day
+Side Effects: Headache, nausea, abdominal pain (usually mild)
+Important Notes: Consult your doctor about contraindications.
+
+⚠️ 6. Important Health Precautions
+
+*   **Food & water safety:** Drink only bottled or boiled water. Eat only thoroughly cooked food. Avoid ice.
+*   **Insect bite prevention:** Use DEET-containing insect repellent, wear long sleeves and pants, and sleep in air-conditioned or screened rooms or under a mosquito net. This is crucial for preventing dengue, Zika, and Japanese Encephalitis.
+*   **Travel insurance recommendation:** Ensure you have comprehensive travel insurance that covers medical evacuation.
+*   **When to seek medical help:** Seek medical attention immediately if you develop a fever, rash, or other concerning symptoms during or after your trip.
+*   **Current health alerts or outbreaks:** Check the CDC and WHO websites for any current health alerts or outbreaks in Thailand and Vietnam before your departure.
+
+
+================================================================================
+                           IMPORTANT REMINDERS
+================================================================================
+
+✓ Keep this journal with you during travel
+✓ Schedule all vaccinations NOW - don't wait until the last minute
+✓ Book appointments with your travel clinic or doctor
+✓ Bring this report to your vaccination appointments
+✓ Take screenshots or photos of this document as backup
+✓ Keep vaccination records safe and accessible
+✓ Check with your airline for any COVID-19 entry requirements
+✓ Consider travel insurance that covers medical emergencies
+✓ Review the source links provided for the most current information
+✓ Stay updated on health alerts for your destinations before and during travel
+
+================================================================================
+                        SAFE TRAVELS AND GOOD HEALTH!
+================================================================================
+
