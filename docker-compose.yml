@@ -1,0 +1,33 @@
+
+
+services:
+  travel-health-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: travel-health-planner
+    ports:
+      - "8000:8000"
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - DEBUG_MODE=${DEBUG_MODE:-false}
+    env_file:
+      - .env
+    volumes:
+      # Mount journals directory to persist data
+      - ./journals:/app/journals
+      # Mount code for development (optional - remove in production)
+      - ./main.py:/app/main.py
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - travel-health-network
+
+networks:
+  travel-health-network:
+    driver: bridge
