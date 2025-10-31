@@ -7,7 +7,7 @@ services:
       dockerfile: Dockerfile
     container_name: travel-health-planner
     ports:
-      - "8000:8000"
+      - "8001:8001"
     environment:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - DEBUG_MODE=${DEBUG_MODE:-false}
