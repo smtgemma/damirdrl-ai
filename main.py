@@ -84,11 +84,14 @@ class VaccineScheduleOption(BaseModel):
     administration_notes: Optional[str] = Field(None, description="Additional notes about administration")
 
 
-class VaccineSchedule(BaseModel):
-    """Complete schedule information for one vaccine"""
-    vaccine_name: str = Field(..., description="Name of the vaccine")
-    schedule_options: List[VaccineScheduleOption] = Field(..., description="Available schedule options (usually 1, sometimes 2 for injection vs oral)")
-    overlap_warning: Optional[str] = Field(None, description="Warning saying contact clinic if vaccine overlaps with travel dates")
+class ConsultationVisit(BaseModel):
+    """One consultation visit with multiple vaccines"""
+    visit_number: int = Field(..., description="Consultation number (1, 2, 3, etc.)")
+    timing_description: str = Field(..., description="When this visit should occur")
+    days_from_today: Optional[int] = Field(None, description="Days from today")
+    vaccines_to_administer: List[str] = Field(..., description="List of vaccines given in this visit")
+    administration_notes: Optional[str] = Field(None, description="Notes for this visit")
+    overlap_warning: Optional[str] = Field(None, description="Warning if visit falls during travel")
 
 
 class VaccineProtection(BaseModel):
@@ -131,7 +134,7 @@ class StructuredHealthPlan(BaseModel):
     recommended_vaccines: List[str] = Field(..., description="List of recommended vaccine names")
     malaria_prevention_required: bool = Field(..., description="Whether malaria prevention is needed")
     travel_summary: TravelSummary = Field(..., description="Summary of travel information")
-    vaccination_schedules: List[VaccineSchedule] = Field(..., description="Detailed vaccination schedules")
+    vaccination_schedules: List[ConsultationVisit] = Field(..., description="Detailed vaccination schedules")
     vaccine_protections: List[VaccineProtection] = Field(..., description="Protection timelines for each vaccine")
     malaria_protocol: MalariaProtocol = Field(..., description="Malaria prevention protocol")
 
@@ -272,6 +275,7 @@ Risk Factors:
     
     # Calculate days until departure
     days_until_departure = (data.countries[0].departure_date - current_date).days
+    days_until_return = (data.countries[-1].return_date - current_date).days
     
     # Create aggregate risk summary
     aggregate_risks = f"""
@@ -290,7 +294,8 @@ IMPORTANT: If ANY of the above risks are "Yes", provide recommendations for that
 TRAVELER PROFILE:
 Age: {data.traveler_info.age} years
 Current Date: {current_date_str}
-Days Until Departure: {days_until_departure}
+Days Until Departure: {days_until_departure} days
+Travel Period Range: Day {travel_day_starts} to Day {travel_day_ends} from today
 Destinations: {countries_list}
 Trip Duration: {total_trip_days} days
 Departure: {departure_date_str}
@@ -331,29 +336,23 @@ You MUST return ONLY a valid JSON object (no markdown, no code blocks, no extra 
     "traveler_age": {data.traveler_info.age}
   }},
   "vaccination_schedules": [
-    {{
-      "vaccine_name": "Actual Vaccine Name",
-      "schedule_options": [
-        {{
-          "option_name": "Standard Schedule" or "Accelerated Schedule" or "Oral Capsules",
-          "doses": [
-            {{
-              "dose_number": 1,
-              "timing_description": "Today or as soon as possible",
-              "days_from_today": 0
-            }},
-            {{
-              "dose_number": 2,
-              "timing_description": "28 days after Dose 1",
-              "days_from_today": 28
-            }}
-          ],
-          "administration_notes": "Optional notes about this schedule"
-        }}
-      ],
-      "overlap_warning": "Warning if vaccine dose falls between {departure_date_str} and {last_return_date_str} or between day {travel_day_starts} and day {travel_day_ends}" or null
-    }}
-  ],
+  {{
+    "visit_number": 1,
+    "timing_description": "Today or as soon as possible",
+    "days_from_today": 0,
+    "vaccines_to_administer": ["Hepatitis A (Dose 1)", "Hepatitis B (Dose 1)", "DiTe Booster"],
+    "administration_notes": "Initial consultation - multiple vaccines can be given together",
+    "overlap_warning": null
+  }},
+  {{
+    "visit_number": 2,
+    "timing_description": "28 days after first consultation",
+    "days_from_today": 28,
+    "vaccines_to_administer": ["Hepatitis A (Dose 2)", "Hepatitis B (Dose 2)", "Japanese Encephalitis (Dose 1)"],
+    "administration_notes": null,
+    "overlap_warning": "Contact clinic if this falls during travel dates"
+  }}
+ ],
   "vaccine_protections": [
     {{
       "vaccine_name": "Actual Vaccine Name",
@@ -379,18 +378,65 @@ CRITICAL FORMATTING RULES:
 - NEVER use negative day numbers in timing_description
 - Use phrases like "X days before departure" or "Today" or "X days after Dose N"
 - For timing_description, use clear plain language
-- For days_from_today, calculate the approximate number (use null if not calculable)
+- For days_from_today, you MUST calculate an exact integer day number from today (Day 0)
+- NEVER use null for days_from_today
+- For vague timings like "1-6 weeks before departure", calculate the midpoint: (departure_day - 3.5 weeks)
+- For relative timings like "X months after Dose 2", add the days together: (Dose 2 day + X months)
+- Round to nearest integer if needed
 - If a vaccine has multiple administration options (injection vs oral), include multiple schedule_options
 - If any vaccine dose would fall during travel dates ({departure_date_str} to {last_return_date_str}) or ({travel_day_starts} to {travel_day_ends}), add an overlap_warning
 - Only recommend vaccines that are ACTUALLY needed based on CDC/SSI guidelines for these specific destinations and risk profile
 - DO NOT include placeholder or example vaccines
 - Ensure all schedules are realistic given {days_until_departure} days until departure
 
+
+CONSULTATION VISIT RULES:
+- Group vaccines by consultation visit, not by individual vaccine
+- Multiple vaccines can be administered in the same visit
+- Calculate optimal visit timing based on vaccine requirements
+- Specify which dose of each vaccine (e.g., "Hepatitis A (Dose 1)")
+- Flag overlap_warning if any visit falls during travel dates
+- Consider accelerated schedules if time before departure is limited
+- CRITICAL: Consultation visits MUST be sorted by days_from_today in ascending order
+- If Visit 3 occurs before Visit 2 chronologically, renumber them so they are in chronological order
+- Never assign visit numbers out of chronological sequence
+
+DAY NUMBER CALCULATION RULES:
+- Consultation 1: days_from_today = 0 (always today)
+- Consultation N: days_from_today = cumulative days from Day 0
+- Example: "28 days after first consultation" → days_from_today = 28
+- Example: "6 months after Dose 1" → days_from_today = 180 (6 × 30 days)
+- Example: "1-6 weeks before departure" where departure is Day {days_until_departure}:
+  → Calculate midpoint: {days_until_departure} - 3.5 weeks = {days_until_departure} - 24.5 days
+  → Round to integer
+- Example: "1-6 months after Dose 2 (Day 28)":
+  → Calculate midpoint: 28 + 3.5 months = 28 + 105 days = 133
+
+OVERLAP WARNING CALCULATION (MANDATORY):
+- Current date: {current_date_str}
+- Travel departure date: {departure_date_str}
+- Travel return date: {last_return_date_str}
+- For EACH consultation visit, calculate: visit_date = add days_from_today to {current_date_str}
+- If visit_date falls between {departure_date_str} and {last_return_date_str} (inclusive), add overlap_warning
+- For EACH consultation visit, calculate: visit_date = current_date + days_from_today
+- If days_from_today falls in range [{travel_day_starts} to {travel_day_ends}], you MUST set overlap_warning with:
+  * Format: "⚠️ TRAVEL CONFLICT: This consultation would fall on [calculate exact date from days_from_today], which is during your travel ({departure_date_str} to {last_return_date_str}). Contact the clinic BEFORE departure to reschedule or arrange administration abroad."
+  * Calculate the exact date by adding days_from_today to {current_date_str}
+  * Example: If days_from_today=40 and travel is Day 38-69, include: "This consultation would fall on [DATE], which conflicts with travel"
+- If days_from_today < {travel_day_starts} OR days_from_today > {travel_day_ends}, set overlap_warning to null
+- Post-travel boosters (e.g., Hepatitis A at 6-12 months) should NOT be flagged
+- DO NOT use vague language like "Contact clinic if this falls during travel"
+- ONLY include overlap_warning if the mathematical calculation proves conflict
+- Include the specific calculated date in the warning message
+
+
 VACCINE-SPECIFIC RULES:
 - Some vaccines like Hepatitis A allow dose 2 to be given 6-12 months later (after travel is fine)
 - Some vaccines like Japanese Encephalitis have both standard (28 days) and accelerated (7 days) schedules
 - Some vaccines like Typhoid have both injection and oral capsule options
 - Only flag overlap_warning with proper explanation and mentioning contact clinic for doses that MUST be given before/during travel (not post-travel boosters)
+
+Output Language: English
 
 Return ONLY the JSON object. Do not wrap it in markdown code blocks. No additional text before or after the JSON."""
 
@@ -513,26 +559,24 @@ def structured_to_readable(structured: StructuredHealthPlan) -> str:
     html_parts.append(f"<li><strong>Traveler Age:</strong> {summary.traveler_age} years</li>")
     html_parts.append("</ul>")
     
-    # Section 3: Vaccination Schedule
+    # Section 3: Vaccination Schedule (by Consultation Visit)
     html_parts.append("<h2>3. Vaccination Schedule Plan</h2>")
-    for schedule in structured.vaccination_schedules:
-        html_parts.append(f"<h3>{schedule.vaccine_name}</h3>")
+    for visit in structured.vaccination_schedules:
+        html_parts.append(f"<h3>Consultation {visit.visit_number}</h3>")
+        html_parts.append(f"<p><strong>Timing:</strong> {visit.timing_description}</p>")
         
-        for option in schedule.schedule_options:
-            if len(schedule.schedule_options) > 1:
-                html_parts.append(f"<h4>{option.option_name}</h4>")
-            
-            html_parts.append("<ul>")
-            for dose in option.doses:
-                html_parts.append(f"<li><strong>Dose {dose.dose_number}:</strong> {dose.timing_description}</li>")
-            html_parts.append("</ul>")
-            
-            if option.administration_notes:
-                html_parts.append(f"<p><em>Note: {option.administration_notes}</em></p>")
+        html_parts.append("<p><strong>Vaccines to receive:</strong></p>")
+        html_parts.append("<ul>")
+        for vaccine in visit.vaccines_to_administer:
+            html_parts.append(f"<li>{vaccine}</li>")
+        html_parts.append("</ul>")
         
-        if schedule.overlap_warning:
-            html_parts.append(f"<p><strong>⚠️ {schedule.overlap_warning}</strong></p>")
-    
+        if visit.administration_notes:
+            html_parts.append(f"<p><em>Note: {visit.administration_notes}</em></p>")
+        
+        if visit.overlap_warning:
+            html_parts.append(f"<p><strong>⚠️ {visit.overlap_warning}</strong></p>")
+
     # Section 4: Protection Timeline
     html_parts.append("<h2>4. Vaccine Protection Timeline</h2>")
     for protection in structured.vaccine_protections:
@@ -775,6 +819,54 @@ async def generate_health_plan(request: TravelRequest):
                 
                 # Validate against schema
                 structured_data = StructuredHealthPlan(**json_data)
+
+                # Calculate days_from_today for visits that don't have it
+                for visit in structured_data.vaccination_schedules:
+                    if visit.days_from_today is None:
+                        # Try to extract from timing_description
+                        timing = visit.timing_description.lower()
+                        
+                        # Parse "X days after" pattern
+                        if "days after" in timing:
+                            match = re.search(r'(\d+)\s+days?\s+after', timing)
+                            if match:
+                                visit.days_from_today = int(match.group(1))
+                        
+                        # Parse "X weeks after" pattern
+                        elif "weeks after" in timing:
+                            match = re.search(r'(\d+)\s+weeks?\s+after', timing)
+                            if match:
+                                visit.days_from_today = int(match.group(1)) * 7
+                        
+                        # Parse "X months after" pattern
+                        elif "months after" in timing:
+                            match = re.search(r'(\d+)[\-]?(\d+)?\s+months?\s+after', timing)
+                            if match:
+                                # Use midpoint if range (e.g., "1-6 months")
+                                min_months = int(match.group(1))
+                                max_months = int(match.group(2)) if match.group(2) else min_months
+                                avg_months = (min_months + max_months) / 2
+                                visit.days_from_today = int(avg_months * 30)
+                        
+                        # Parse "X weeks before departure" pattern
+                        elif "before departure" in timing:
+                            match = re.search(r'(\d+)[\-]?(\d+)?\s+weeks?\s+before', timing)
+                            if match:
+                                min_weeks = int(match.group(1))
+                                max_weeks = int(match.group(2)) if match.group(2) else min_weeks
+                                avg_weeks = (min_weeks + max_weeks) / 2
+                                visit.days_from_today = days_until_departure - int(avg_weeks * 7)
+                        
+                        # If still null, put at end
+                        if visit.days_from_today is None:
+                            visit.days_from_today = 99999
+
+                # Sort consultation visits by days_from_today
+                structured_data.vaccination_schedules.sort(key=lambda visit: visit.days_from_today)
+
+                # Renumber visits to be in order (1, 2, 3, etc.)
+                for idx, visit in enumerate(structured_data.vaccination_schedules, start=1):
+                    visit.visit_number = idx
                 
                 logger.info(f"✓ Successfully generated structured health plan on attempt {attempt + 1}")
                 logger.info(f"  - Vaccines recommended: {len(structured_data.recommended_vaccines)}")
