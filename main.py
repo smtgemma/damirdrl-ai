@@ -436,7 +436,11 @@ VACCINE-SPECIFIC RULES:
 - Some vaccines like Typhoid have both injection and oral capsule options
 - Only flag overlap_warning with proper explanation and mentioning contact clinic for doses that MUST be given before/during travel (not post-travel boosters)
 
-Output Language: English
+Output Language Rules: 
+- The output must be in Danish language
+- ALL text including section headers, descriptions, and notes MUST be in Danish
+- Vaccine names can remain in their international medical names
+- Dates should use Danish format (e.g., "15. november 2025")
 
 Return ONLY the JSON object. Do not wrap it in markdown code blocks. No additional text before or after the JSON."""
 
@@ -531,80 +535,80 @@ def create_grounding_config():
 #     # return "\n".join(output)
 #     return "<br>".join(output)
 def structured_to_readable(structured: StructuredHealthPlan) -> str:
-    """Convert structured data to HTML-formatted text for website display"""
+    """Convert structured data to HTML-formatted text for website display in Danish"""
     
     html_parts = []
     
     # Section 1: Recommended Vaccines
-    html_parts.append("<h2>1. Recommended Vaccines & Malaria Prevention</h2>")
+    html_parts.append("<h2>1. Anbefalede Vacciner & Malaria Forebyggelse</h2>")
     html_parts.append("<ul>")
     for vaccine in structured.recommended_vaccines:
         html_parts.append(f"<li>{vaccine}</li>")
     html_parts.append("</ul>")
     
     # Section 2: Travel Summary
-    html_parts.append("<h2>2. Summary of Your Travel Info</h2>")
+    html_parts.append("<h2>2. Oversigt over Din Rejse Information</h2>")
     summary = structured.travel_summary
     html_parts.append("<ul>")
-    html_parts.append(f"<li><strong>Destinations:</strong> {summary.destinations}</li>")
-    html_parts.append(f"<li><strong>Total Trip Duration:</strong> {summary.total_trip_duration_days} days</li>")
-    html_parts.append(f"<li><strong>Days Until Departure:</strong> {summary.days_until_departure} days</li>")
-    html_parts.append(f"<li><strong>Rural or Forest Areas:</strong> {'Yes' if summary.rural_or_forest_areas else 'No'}</li>")
-    html_parts.append(f"<li><strong>Contact with Locals:</strong> {'Yes' if summary.contact_with_locals else 'No'}</li>")
-    html_parts.append(f"<li><strong>Staying with Locals:</strong> {'Yes' if summary.staying_with_locals else 'No'}</li>")
-    html_parts.append(f"<li><strong>Animal Contact:</strong> {'Yes' if summary.animal_contact else 'No'}</li>")
-    html_parts.append(f"<li><strong>Risky Activities:</strong> {'Yes' if summary.risky_activities else 'No'}</li>")
-    html_parts.append(f"<li><strong>Departure Date:</strong> {summary.departure_date}</li>")
-    html_parts.append(f"<li><strong>Final Return Date:</strong> {summary.final_return_date}</li>")
-    html_parts.append(f"<li><strong>Traveler Age:</strong> {summary.traveler_age} years</li>")
+    html_parts.append(f"<li><strong>Destinationer:</strong> {summary.destinations}</li>")
+    html_parts.append(f"<li><strong>Samlet Rejsevarighed:</strong> {summary.total_trip_duration_days} dage</li>")
+    html_parts.append(f"<li><strong>Dage til Afrejse:</strong> {summary.days_until_departure} dage</li>")
+    html_parts.append(f"<li><strong>Landlige eller Skovområder:</strong> {'Ja' if summary.rural_or_forest_areas else 'Nej'}</li>")
+    html_parts.append(f"<li><strong>Kontakt med Lokale:</strong> {'Ja' if summary.contact_with_locals else 'Nej'}</li>")
+    html_parts.append(f"<li><strong>Opholder sig hos Lokale:</strong> {'Ja' if summary.staying_with_locals else 'Nej'}</li>")
+    html_parts.append(f"<li><strong>Dyrekontakt:</strong> {'Ja' if summary.animal_contact else 'Nej'}</li>")
+    html_parts.append(f"<li><strong>Risikable Aktiviteter:</strong> {'Ja' if summary.risky_activities else 'Nej'}</li>")
+    html_parts.append(f"<li><strong>Afrejsedato:</strong> {summary.departure_date}</li>")
+    html_parts.append(f"<li><strong>Endelig Returneringsdato:</strong> {summary.final_return_date}</li>")
+    html_parts.append(f"<li><strong>Rejsendes Alder:</strong> {summary.traveler_age} år</li>")
     html_parts.append("</ul>")
     
     # Section 3: Vaccination Schedule (by Consultation Visit)
-    html_parts.append("<h2>3. Vaccination Schedule Plan</h2>")
+    html_parts.append("<h2>3. Vaccinationsplan</h2>")
     for visit in structured.vaccination_schedules:
-        html_parts.append(f"<h3>Consultation {visit.visit_number}</h3>")
-        html_parts.append(f"<p><strong>Timing:</strong> {visit.timing_description}</p>")
+        html_parts.append(f"<h3>Konsultation {visit.visit_number}</h3>")
+        html_parts.append(f"<p><strong>Tidspunkt:</strong> {visit.timing_description}</p>")
         
-        html_parts.append("<p><strong>Vaccines to receive:</strong></p>")
+        html_parts.append("<p><strong>Vacciner at modtage:</strong></p>")
         html_parts.append("<ul>")
         for vaccine in visit.vaccines_to_administer:
             html_parts.append(f"<li>{vaccine}</li>")
         html_parts.append("</ul>")
         
         if visit.administration_notes:
-            html_parts.append(f"<p><em>Note: {visit.administration_notes}</em></p>")
+            html_parts.append(f"<p><em>Bemærk: {visit.administration_notes}</em></p>")
         
         if visit.overlap_warning:
             html_parts.append(f"<p><strong>⚠️ {visit.overlap_warning}</strong></p>")
 
     # Section 4: Protection Timeline
-    html_parts.append("<h2>4. Vaccine Protection Timeline</h2>")
+    html_parts.append("<h2>4. Vaccine Beskyttelsestidslinje</h2>")
     for protection in structured.vaccine_protections:
         html_parts.append(f"<h3>{protection.vaccine_name}</h3>")
         html_parts.append("<ul>")
-        html_parts.append(f"<li><strong>Protection starts:</strong> {protection.protection_onset}</li>")
-        html_parts.append(f"<li><strong>Full protection:</strong> {protection.full_protection}</li>")
-        html_parts.append(f"<li><strong>Immunity duration:</strong> {protection.immunity_duration}</li>")
+        html_parts.append(f"<li><strong>Beskyttelse starter:</strong> {protection.protection_onset}</li>")
+        html_parts.append(f"<li><strong>Fuld beskyttelse:</strong> {protection.full_protection}</li>")
+        html_parts.append(f"<li><strong>Immunitetsvarighed:</strong> {protection.immunity_duration}</li>")
         if protection.booster_info:
-            html_parts.append(f"<li><strong>Booster info:</strong> {protection.booster_info}</li>")
+            html_parts.append(f"<li><strong>Booster information:</strong> {protection.booster_info}</li>")
         html_parts.append("</ul>")
     
     # Section 5: Malaria Protocol
-    html_parts.append("<h2>5. Malaria Prevention Protocol</h2>")
+    html_parts.append("<h2>5. Malaria Forebyggelsesprotokol</h2>")
     malaria = structured.malaria_protocol
     
     if malaria.is_required:
-        html_parts.append(f"<p><strong>Medication:</strong> {malaria.medication_name}</p>")
+        html_parts.append(f"<p><strong>Medicin:</strong> {malaria.medication_name}</p>")
         html_parts.append("<ul>")
-        html_parts.append(f"<li><strong>When to Start:</strong> {malaria.start_timing}</li>")
-        html_parts.append(f"<li><strong>When to Stop:</strong> {malaria.stop_timing}</li>")
-        html_parts.append(f"<li><strong>How to Take:</strong> {malaria.administration_instructions}</li>")
-        html_parts.append(f"<li><strong>Common Side Effects:</strong> {malaria.side_effects}</li>")
+        html_parts.append(f"<li><strong>Hvornår skal man starte:</strong> {malaria.start_timing}</li>")
+        html_parts.append(f"<li><strong>Hvornår skal man stoppe:</strong> {malaria.stop_timing}</li>")
+        html_parts.append(f"<li><strong>Hvordan tages det:</strong> {malaria.administration_instructions}</li>")
+        html_parts.append(f"<li><strong>Almindelige Bivirkninger:</strong> {malaria.side_effects}</li>")
         if malaria.additional_protection:
-            html_parts.append(f"<li><strong>Additional Protection:</strong> {malaria.additional_protection}</li>")
+            html_parts.append(f"<li><strong>Yderligere Beskyttelse:</strong> {malaria.additional_protection}</li>")
         html_parts.append("</ul>")
     else:
-        html_parts.append("<p>✓ Good news! Malaria prophylaxis is not required for your destinations based on current CDC and SSI guidelines.</p>")
+        html_parts.append("<p>✓ Gode nyheder! Malaria profylakse er ikke påkrævet for dine destinationer baseret på nuværende CDC og SSI retningslinjer.</p>")
     
     return "".join(html_parts)
 
@@ -800,6 +804,8 @@ async def generate_health_plan(request: TravelRequest):
                         tools=[types.Tool(google_search=grounding_config)],
                         temperature=0.1,
                         response_modalities=["TEXT"],
+                        # ADD THIS SYSTEM INSTRUCTION:
+                        system_instruction="You are a Danish-speaking travel medicine specialist. ALL responses must be in Danish language. Use Danish medical terminology where appropriate."
                     )
                 )
                 
