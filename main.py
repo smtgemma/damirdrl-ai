@@ -889,7 +889,7 @@ async def generate_health_plan(request: TravelRequest):
                         temperature=0.1,
                         response_modalities=["TEXT"],
                         # ADD THIS SYSTEM INSTRUCTION:
-                        system_instruction="You are a Danish-speaking travel medicine specialist. ALL responses must be in Danish language. Use Danish medical terminology where appropriate."
+                        # system_instruction="You are a Danish-speaking travel medicine specialist. ALL responses must be in Danish language. Use Danish medical terminology where appropriate."
                     )
                 )
                 
@@ -906,9 +906,39 @@ async def generate_health_plan(request: TravelRequest):
                 # Parse JSON response
                 import json
                 json_data = json.loads(json_text)
-                
-                # Validate against schema
+
+                if "vaccination_schedules" in json_data:
+                    for visit in json_data["vaccination_schedules"]:
+                        # Check if protection_warning exists and is a dict
+                        if "protection_warning" in visit and isinstance(visit["protection_warning"], dict):
+                            # Convert dict to combined string
+                            warnings = []
+                            for vaccine_name, warning_text in visit["protection_warning"].items():
+                                if warning_text:  # Only include non-null warnings
+                                    warnings.append(f"{vaccine_name}: {warning_text}")
+                            
+                            # Combine all warnings into one string
+                            if warnings:
+                                visit["protection_warning"] = " | ".join(warnings)
+                            else:
+                                visit["protection_warning"] = None
+                        
+                        # Do the same for overlap_warning (just in case)
+                        if "overlap_warning" in visit and isinstance(visit["overlap_warning"], dict):
+                            warnings = []
+                            for vaccine_name, warning_text in visit["overlap_warning"].items():
+                                if warning_text:
+                                    warnings.append(f"{vaccine_name}: {warning_text}")
+                            
+                            if warnings:
+                                visit["overlap_warning"] = " | ".join(warnings)
+                            else:
+                                visit["overlap_warning"] = None
+
+                # Now validate against schema
                 structured_data = StructuredHealthPlan(**json_data)
+                
+
 
                 # Calculate days_from_today for visits that don't have it
                 for visit in structured_data.vaccination_schedules:
