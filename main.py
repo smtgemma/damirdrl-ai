@@ -77,11 +77,11 @@ class VaccineDose(BaseModel):
     days_from_today: Optional[int] = Field(None, description="Approximate days from today (if calculable)")
 
 
-class VaccineScheduleOption(BaseModel):
-    """One scheduling option for a vaccine (e.g., standard vs accelerated)"""
-    option_name: str = Field(..., description="Name of this schedule option (e.g., 'Standard Schedule', 'Accelerated Schedule', 'Oral Capsules')")
-    doses: List[VaccineDose] = Field(..., description="List of doses in this schedule")
-    administration_notes: Optional[str] = Field(None, description="Additional notes about administration")
+# class VaccineScheduleOption(BaseModel):
+#     """One scheduling option for a vaccine (e.g., standard vs accelerated)"""
+#     option_name: str = Field(..., description="Name of this schedule option (e.g., 'Standard Schedule', 'Accelerated Schedule', 'Oral Capsules')")
+#     doses: List[VaccineDose] = Field(..., description="List of doses in this schedule")
+#     administration_notes: Optional[str] = Field(None, description="Additional notes about administration")
 
 
 class ConsultationVisit(BaseModel):
@@ -92,6 +92,7 @@ class ConsultationVisit(BaseModel):
     vaccines_to_administer: List[str] = Field(..., description="List of vaccines given in this visit")
     administration_notes: Optional[str] = Field(None, description="Notes for this visit")
     overlap_warning: Optional[str] = Field(None, description="Warning if visit falls during travel")
+    protection_warning: Optional[str] = Field(None, description="Warning if protection not achieved before departure")  # ADD THIS
 
 
 class VaccineProtection(BaseModel):
@@ -316,6 +317,12 @@ CRITICAL OUTPUT REQUIREMENTS:
 
 You MUST return ONLY a valid JSON object (no markdown, no code blocks, no extra text). The JSON must match this exact structure:
 
+**IMPORTANT: For each vaccine, choose ONLY ONE optimal schedule based on time available ({days_until_departure} days). 
+- If time is limited (< 21 days), choose accelerated schedule
+- If adequate time available, choose standard schedule
+- NEVER include multiple schedule options for the same vaccine
+- The vaccination_schedules array should list consultations, not individual vaccines**
+
 {{
   "recommended_vaccines": [
     "Vaccine Name 1",
@@ -338,19 +345,40 @@ You MUST return ONLY a valid JSON object (no markdown, no code blocks, no extra 
   "vaccination_schedules": [
   {{
     "visit_number": 1,
-    "timing_description": "Today or as soon as possible",
+    "timing_description": "I dag eller så snart som muligt",
     "days_from_today": 0,
-    "vaccines_to_administer": ["Hepatitis A (Dose 1)", "Hepatitis B (Dose 1)", "DiTe Booster"],
-    "administration_notes": "Initial consultation - multiple vaccines can be given together",
-    "overlap_warning": null
+    "vaccines_to_administer": [
+      "Gul Feber (Dosis 1)",
+      "Hepatitis A (Dosis 1)",
+      "Typhoid (Injektion)"
+    ],
+    "administration_notes": "Første konsultation - flere vacciner kan gives samtidigt",
+    "overlap_warning": null,
+    "protection_warning": null
   }},
   {{
     "visit_number": 2,
-    "timing_description": "28 days after first consultation",
-    "days_from_today": 28,
-    "vaccines_to_administer": ["Hepatitis A (Dose 2)", "Hepatitis B (Dose 2)", "Japanese Encephalitis (Dose 1)"],
-    "administration_notes": null,
-    "overlap_warning": "Contact clinic if this falls during travel dates"
+    "timing_description": "7 dage efter første konsultation",
+    "days_from_today": 7,
+    "vaccines_to_administer": [
+      "Japansk Encephalitis (Dosis 1 - accelereret)",
+      "Hepatitis B (Dosis 1)"
+    ],
+    "administration_notes": "Accelereret plan pga. kort tid til afrejse",
+    "overlap_warning": null,
+    "protection_warning": "⚠️ Hepatitis B: Beskyttelse opnås 14 dage efter dosis 2 (dag 14), men afrejse er dag {days_until_departure}"
+  }},
+  {{
+    "visit_number": 3,
+    "timing_description": "14 dage efter første konsultation",
+    "days_from_today": 14,
+    "vaccines_to_administer": [
+      "Japansk Encephalitis (Dosis 2 - accelereret)",
+      "Hepatitis B (Dosis 2)"
+    ],
+    "administration_notes": "Afslutning af accelereret plan",
+    "overlap_warning": null,
+    "protection_warning": null
   }}
  ],
   "vaccine_protections": [
@@ -430,11 +458,37 @@ OVERLAP WARNING CALCULATION (MANDATORY):
 - Include the specific calculated date in the warning message
 
 
+PROTECTION WARNING CALCULATION (MANDATORY):
+- For EACH vaccine in EACH consultation, calculate: protection_date = visit_date + protection_onset_days
+- If protection_date > departure_date ({departure_date_str}), add protection_warning with:
+  * Format: "⚠️ BESKYTTELSE IKKE OPNÅET: Fuld beskyttelse for [vaccine_name] opnås [X] dage efter vaccination, hvilket er efter din afrejsedato. Kontakt klinikken for alternative beskyttelsesmuligheder."
+  * Calculate exact protection date and compare with departure date
+  * Example: If Hepatitis A (14 days protection) given on Day 5, protection is Day 19. If departure is Day 12, flag it.
+- For vaccines with multiple doses where FIRST dose is flagged:
+  * ALL subsequent doses of the same vaccine must also include protection_warning
+  * Format for subsequent doses: "⚠️ TIDLIGERE DOSIS ADVARSEL: Den første dosis af denne vaccine kunne ikke give beskyttelse før afrejse. Denne dosis er del af samme serie."
+- If protection_date <= departure_date, set protection_warning to null
+
 VACCINE-SPECIFIC RULES:
+- Choose ONE optimal schedule per vaccine based on time until departure ({days_until_departure} days)
+- For vaccines with multiple schedules (e.g., Japanese Encephalitis: 28-day standard or 7-day accelerated):
+  * If {days_until_departure} < 21 days: Choose accelerated schedule
+  * If {days_until_departure} >= 21 days: Choose standard schedule unless traveler risk requires faster protection
+- For vaccines with multiple forms (e.g., Typhoid: injection vs oral):
+  * Choose injection for faster protection if time is limited
+  * Choose oral if adequate time available and no contraindications
 - Some vaccines like Hepatitis A allow dose 2 to be given 6-12 months later (after travel is fine)
-- Some vaccines like Japanese Encephalitis have both standard (28 days) and accelerated (7 days) schedules
-- Some vaccines like Typhoid have both injection and oral capsule options
-- Only flag overlap_warning with proper explanation and mentioning contact clinic for doses that MUST be given before/during travel (not post-travel boosters)
+- Schedule consultations to group vaccines efficiently (multiple vaccines per visit when safe)
+- Only flag overlap_warning for doses that MUST be given before/during travel (not post-travel boosters)
+
+SCHEDULE OPTIMIZATION RULES:
+- Group vaccines by consultation visit number, not by individual vaccine schedules
+- Calculate the MINIMUM number of consultations needed
+- If multiple vaccines can be given on the same day, combine them in one consultation visit
+- Example: If Hepatitis A (Day 0), Typhoid (Day 0), and Yellow Fever (Day 0) are all needed, they go in Consultation 1
+- The vaccination_schedules array represents CONSULTATION VISITS, each listing multiple vaccines
+- Do NOT create separate schedule entries for each vaccine
+- Prioritize getting maximum protection before departure date (Day {days_until_departure})
 
 Output Language Rules: 
 - The output must be in Danish language
@@ -565,6 +619,27 @@ def structured_to_readable(structured: StructuredHealthPlan) -> str:
     
     # Section 3: Vaccination Schedule (by Consultation Visit)
     html_parts.append("<h2>3. Vaccinationsplan</h2>")
+
+    # First, collect all vaccines with protection warnings
+    vaccines_with_warnings = set()
+    for visit in structured.vaccination_schedules:
+        if visit.protection_warning:
+            for vaccine in visit.vaccines_to_administer:
+                vaccine_base_name = vaccine.split('(')[0].strip()  # Get "Hepatitis A" from "Hepatitis A (Dose 1)"
+                vaccines_with_warnings.add(vaccine_base_name)
+
+    # Show warning section if any vaccines have protection issues
+    if vaccines_with_warnings:
+        html_parts.append("<h2>⚠️ Vacciner med Utilstrækkelig Beskyttelse</h2>")
+        html_parts.append("<div style='background-color: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; margin: 10px 0;'>")
+        html_parts.append("<p><strong>Følgende vacciner kan ikke give fuld beskyttelse før afrejse:</strong></p>")
+        html_parts.append("<ul>")
+        for vaccine_name in vaccines_with_warnings:
+            html_parts.append(f"<li><strong>{vaccine_name}</strong>: Kontakt klinikken for alternative beskyttelsesmuligheder eller revurdering af rejseplaner.</li>")
+        html_parts.append("</ul>")
+        html_parts.append("</div>")
+
+    # Now show the consultation schedule
     for visit in structured.vaccination_schedules:
         html_parts.append(f"<h3>Konsultation {visit.visit_number}</h3>")
         html_parts.append(f"<p><strong>Tidspunkt:</strong> {visit.timing_description}</p>")
@@ -578,8 +653,17 @@ def structured_to_readable(structured: StructuredHealthPlan) -> str:
         if visit.administration_notes:
             html_parts.append(f"<p><em>Bemærk: {visit.administration_notes}</em></p>")
         
+        # Show protection warning if exists
+        if visit.protection_warning:
+            html_parts.append(f"<div style='background-color: #f8d7da; padding: 10px; border-left: 4px solid #dc3545; margin: 10px 0;'>")
+            html_parts.append(f"<p><strong>{visit.protection_warning}</strong></p>")
+            html_parts.append("</div>")
+        
+        # Show overlap warning if exists
         if visit.overlap_warning:
-            html_parts.append(f"<p><strong>⚠️ {visit.overlap_warning}</strong></p>")
+            html_parts.append(f"<div style='background-color: #fff3cd; padding: 10px; border-left: 4px solid #ffc107; margin: 10px 0;'>")
+            html_parts.append(f"<p><strong>{visit.overlap_warning}</strong></p>")
+            html_parts.append("</div>")
 
     # Section 4: Protection Timeline
     html_parts.append("<h2>4. Vaccine Beskyttelsestidslinje</h2>")
@@ -798,7 +882,7 @@ async def generate_health_plan(request: TravelRequest):
         for attempt in range(max_retries):
             try:
                 response = gemini_client.models.generate_content(
-                    model="gemini-2.0-flash-exp",
+                    model="gemini-2.5-flash",
                     contents=[prompt],
                     config=types.GenerateContentConfig(
                         tools=[types.Tool(google_search=grounding_config)],
