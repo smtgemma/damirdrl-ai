@@ -60,6 +60,8 @@ class TravelerInfo(BaseModel):
 
 class TravelRequest(BaseModel):
     """The complete request sent to the API"""
+    booking_start: datetime = Field(..., description="Booking start time", example="2025-11-13T09:00:00.000Z")
+    booking_end: datetime = Field(..., description="Booking end time", example="2025-11-13T09:05:00.000Z")
     booking_id: int = Field(..., description="Booking ID", example=28066531)
     token: str = Field(..., description="Authentication token", example="wefiushfsidfhsiufhsifnsdfhnsiud")
     traveler_info: TravelerInfo
@@ -229,8 +231,10 @@ def create_unified_prompt(data: TravelRequest) -> str:
     This eliminates bias from examples and ensures consistent format.
     """
     
-    # Get current date
+    # Get current date and booking date
     current_date = date.today()
+    booking_date = data.booking_start.date()  # Extract date from datetime
+    days_from_booking_to_today = (current_date - booking_date).days
 
     # Calculate travel day numbers relative to today
     travel_day_starts = (data.countries[0].departure_date - current_date).days  # Day 0 = today
@@ -272,6 +276,8 @@ Risk Factors:
     countries_list = ", ".join([c.country_name for c in data.countries])
     current_date_str = current_date.strftime("%d %b %Y")
     departure_date_str = data.countries[0].departure_date.strftime("%d %b %Y")
+    booking_date_str = booking_date.strftime("%d %b %Y")
+    booking_time_str = data.booking_start.strftime("%H:%M")
     last_return_date_str = data.countries[-1].return_date.strftime("%d %b %Y")
     
     # Calculate days until departure
@@ -295,6 +301,8 @@ IMPORTANT: If ANY of the above risks are "Yes", provide recommendations for that
 TRAVELER PROFILE:
 Age: {data.traveler_info.age} years
 Current Date: {current_date_str}
+Booking Date: {booking_date_str} at {booking_time_str}
+Days Since Booking: {days_from_booking_to_today} days
 Days Until Departure: {days_until_departure} days
 Travel Period Range: Day {travel_day_starts} to Day {travel_day_ends} from today
 Destinations: {countries_list}
@@ -312,6 +320,7 @@ MEDICAL RESEARCH INSTRUCTIONS:
 3. Consider the AGGREGATE risk factors - if ANY country has a particular risk, include recommendations
 4. Provide specific, actionable recommendations based on authoritative sources
 5. DO NOT use example vaccine names - only recommend vaccines actually needed for these specific destinations and risk factors
+6. **MANDATORY VACCINES**: Always include Diphtheria-Tetanus (Td/Tdap) vaccine regardless of destination or risk factors. This is a routine booster that all travelers should have up-to-date.
 
 CRITICAL OUTPUT REQUIREMENTS:
 
@@ -323,8 +332,19 @@ You MUST return ONLY a valid JSON object (no markdown, no code blocks, no extra 
 - NEVER include multiple schedule options for the same vaccine
 - The vaccination_schedules array should list consultations, not individual vaccines**
 
+**MANDATORY VACCINES REQUIREMENT:**
+- Difteri-Tetanus (Td/Tdap) MUST ALWAYS be included in recommended_vaccines array
+- This vaccine is required for ALL travelers regardless of destination
+- Include appropriate scheduling in vaccination_schedules (typically given at first consultation)
+
+**BOOKING AND SCHEDULING:**
+- Consultation 1 should be scheduled for the booking date ({booking_date_str})
+- days_from_today for Consultation 1 should be {days_from_booking_to_today}
+- Subsequent consultations should be scheduled relative to Consultation 1
+
 {{
   "recommended_vaccines": [
+    "Difteri-Tetanus (Td/Tdap)",
     "Vaccine Name 1",
     "Vaccine Name 2"
   ],
@@ -345,9 +365,10 @@ You MUST return ONLY a valid JSON object (no markdown, no code blocks, no extra 
   "vaccination_schedules": [
   {{
     "visit_number": 1,
-    "timing_description": "I dag eller så snart som muligt",
-    "days_from_today": 0,
+    "timing_description": "På din bookede dato ({booking_date_str}) eller så snart som muligt",
+    "days_from_today": {days_from_booking_to_today},
     "vaccines_to_administer": [
+      "Difteri-Tetanus (Td/Tdap)",
       "Gul Feber (Dosis 1)",
       "Hepatitis A (Dosis 1)",
       "Typhoid (Injektion)"
@@ -382,6 +403,13 @@ You MUST return ONLY a valid JSON object (no markdown, no code blocks, no extra 
   }}
  ],
   "vaccine_protections": [
+    {{
+      "vaccine_name": "Difteri-Tetanus (Td/Tdap)",
+      "protection_onset": "2 uger efter vaccination",
+      "full_protection": "2 uger efter vaccination",
+      "immunity_duration": "10 år",
+      "booster_info": "Booster anbefales hver 10. år"
+    }},
     {{
       "vaccine_name": "Actual Vaccine Name",
       "protection_onset": "When protection begins (e.g., '2-4 weeks after first dose')",
@@ -448,7 +476,7 @@ OVERLAP WARNING CALCULATION (MANDATORY):
 - If visit_date falls between {departure_date_str} and {last_return_date_str} (inclusive), add overlap_warning
 - For EACH consultation visit, calculate: visit_date = current_date + days_from_today
 - If days_from_today falls in range [{travel_day_starts} to {travel_day_ends}], you MUST set overlap_warning with:
-  * Format: "⚠️ TRAVEL CONFLICT: This consultation would fall on [calculate exact date from days_from_today], which is during your travel ({departure_date_str} to {last_return_date_str}). Contact the clinic BEFORE departure to reschedule or arrange administration abroad."
+  * Format: "⚠️ TRAVEL CONFLICT: This consultation would fall on [calculate exact date from days_from_today], which is during your travel ({departure_date_str} to {last_return_date_str})."
   * Calculate the exact date by adding days_from_today to {current_date_str}
   * Example: If days_from_today=40 and travel is Day 38-69, include: "This consultation would fall on [DATE], which conflicts with travel"
 - If days_from_today < {travel_day_starts} OR days_from_today > {travel_day_ends}, set overlap_warning to null
@@ -461,7 +489,7 @@ OVERLAP WARNING CALCULATION (MANDATORY):
 PROTECTION WARNING CALCULATION (MANDATORY):
 - For EACH vaccine in EACH consultation, calculate: protection_date = visit_date + protection_onset_days
 - If protection_date > departure_date ({departure_date_str}), add protection_warning with:
-  * Format: "⚠️ BESKYTTELSE IKKE OPNÅET: Fuld beskyttelse for [vaccine_name] opnås [X] dage efter vaccination, hvilket er efter din afrejsedato. Kontakt klinikken for alternative beskyttelsesmuligheder."
+  * Format: "⚠️ BESKYTTELSE IKKE OPNÅET: Fuld beskyttelse for [vaccine_name] opnås [X] dage efter vaccination, hvilket er efter din afrejsedato."
   * Calculate exact protection date and compare with departure date
   * Example: If Hepatitis A (14 days protection) given on Day 5, protection is Day 19. If departure is Day 12, flag it.
 - For vaccines with multiple doses where FIRST dose is flagged:
@@ -470,6 +498,8 @@ PROTECTION WARNING CALCULATION (MANDATORY):
 - If protection_date <= departure_date, set protection_warning to null
 
 VACCINE-SPECIFIC RULES:
+- **CRITICAL**: Difteri-Tetanus (Td/Tdap) MUST be included in every health plan
+- Td/Tdap should be scheduled in the first consultation (Visit 1) unless traveler has had booster within last 10 years
 - Choose ONE optimal schedule per vaccine based on time until departure ({days_until_departure} days)
 - For vaccines with multiple schedules (e.g., Japanese Encephalitis: 28-day standard or 7-day accelerated):
   * If {days_until_departure} < 21 days: Choose accelerated schedule
@@ -635,7 +665,7 @@ def structured_to_readable(structured: StructuredHealthPlan) -> str:
         html_parts.append("<p><strong>Følgende vacciner kan ikke give fuld beskyttelse før afrejse:</strong></p>")
         html_parts.append("<ul>")
         for vaccine_name in vaccines_with_warnings:
-            html_parts.append(f"<li><strong>{vaccine_name}</strong>: Kontakt klinikken for alternative beskyttelsesmuligheder eller revurdering af rejseplaner.</li>")
+            html_parts.append(f"<li><strong>{vaccine_name}</strong></li>")
         html_parts.append("</ul>")
         html_parts.append("</div>")
 
@@ -858,6 +888,8 @@ async def generate_health_plan(request: TravelRequest):
         # Log traveler details
         logger.info(f"Traveler Age: {request.traveler_info.age}")
         logger.info(f"Current Date: {current_date}")
+        logger.info(f"Booking Start: {request.booking_start}")
+        logger.info(f"Booking End: {request.booking_end}")
         
         # Log country details
         for country in request.countries:
