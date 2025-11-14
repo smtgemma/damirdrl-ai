@@ -5,7 +5,8 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import List, Dict, Optional, Literal
 from enum import Enum
-
+import json
+from json import JSONDecodeError
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
@@ -13,6 +14,7 @@ from pydantic import BaseModel, Field, validator
 from google import genai
 from google.genai import types
 from fastapi.middleware.cors import CORSMiddleware
+import time
 
 # Load environment variables from .env file
 load_dotenv()
@@ -908,11 +910,17 @@ async def generate_health_plan(request: TravelRequest):
         # SINGLE AI CALL with structured output
         logger.info("Calling Gemini API with structured output schema...")
         
-        max_retries = 3
+        max_retries = 30
         structured_data = None
         
         for attempt in range(max_retries):
             try:
+                # Add exponential backoff delay (except for first attempt)
+                if attempt > 0:
+                    wait_time = 2 ** attempt  # 2, 4, 8 seconds
+                    logger.info(f"⏳ Waiting {wait_time} seconds before retry attempt {attempt + 1}...")
+                    time.sleep(wait_time)
+                
                 response = gemini_client.models.generate_content(
                     model="gemini-2.5-flash",
                     contents=[prompt],
@@ -920,8 +928,6 @@ async def generate_health_plan(request: TravelRequest):
                         tools=[types.Tool(google_search=grounding_config)],
                         temperature=0.1,
                         response_modalities=["TEXT"],
-                        # ADD THIS SYSTEM INSTRUCTION:
-                        # system_instruction="You are a Danish-speaking travel medicine specialist. ALL responses must be in Danish language. Use Danish medical terminology where appropriate."
                     )
                 )
                 
@@ -1025,7 +1031,7 @@ async def generate_health_plan(request: TravelRequest):
                 logger.info(f"  - Malaria prevention: {structured_data.malaria_prevention_required}")
                 break
                         
-            except json.JSONDecodeError as e:
+            except JSONDecodeError as e:
                 logger.error(f"JSON parsing error on attempt {attempt + 1}: {e}")
                 logger.error(f"Response text (first 500 chars): {response.text[:500]}")
                 if attempt == max_retries - 1:
